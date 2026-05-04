@@ -261,7 +261,8 @@ const { useState, useEffect, useRef, useMemo } = React;
 // ═══════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════
-const STATUSES = ['Contactado','Entrevista','Presentado','Exámenes','Rechazado'];
+const STATUSES = ['Contactado','Entrevista','Presentado','Exámenes','Rechazado']
+const SEARCH_STATUSES = ['Abierta', 'Cerrada', 'Pausada'];;
 const REJECTION_REASONS = ['Expectativa salarial alta','No cumple requisitos técnicos','No fit cultural','No interesado en la propuesta','Ubicación / distancia','Junior','Sobrecalificado','Rechazado por cliente','Otro'];
 const GENDERS = ['Masculino','Femenino','No binario','Prefiero no decir'];
 const STATUS_COLORS = { Contactado:'#3B82F6', Entrevista:'#F59E0B', Presentado:'#3ECC7A', Exámenes:'#F97316', Rechazado:'#EF4444' };
@@ -1047,11 +1048,163 @@ function ReportView({ search, users, onBack, autoPrint }) {
 // ═══════════════════════════════════════════════════
 // SEARCH DETAIL
 // ═══════════════════════════════════════════════════
+// ══ IMPORT MODAL ════════════════════════════════════════════════════════
+function ImportModal({onClose, onImport}) {
+  const IMPORT_FIELDS = ['name','position','client','status','description','modality','location','expectedSalary','recruiter','createdAt'];
+  const FIELD_ALIASES = {
+    name:['nombre','name','búsqueda','busqueda','título','titulo'],
+    position:['posición','posicion','puesto','cargo','position','rol'],
+    client:['cliente','client','empresa','company'],
+    status:['estado','status','estatus'],
+    description:['descripción','descripcion','description','detalle'],
+    modality:['modalidad','modality','modo'],
+    location:['ubicación','ubicacion','location','ciudad','city'],
+    expectedSalary:['salario','salary','sueldo','remuneración','remuneracion'],
+    recruiter:['recruiter','reclutador','responsable'],
+    createdAt:['fecha','date','createdAt','fechacreacion']
+  };
+  const [step, setStep] = React.useState(1);
+  const [headers, setHeaders] = React.useState([]);
+  const [rows, setRows] = React.useState([]);
+  const [mapping, setMapping] = React.useState({});
+
+  const handleFile = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const text = ev.target.result;
+      const sep = (text.split(';').length > text.split(',').length) ? ';' : ',';
+      const lines = text.split('\n').filter(l=>l.trim());
+      const hdrs = lines[0].split(sep).map(h=>h.trim().replace(/^"|"$/g,''));
+      const dataRows = lines.slice(1).map(l=>l.split(sep).map(c=>c.trim().replace(/^"|"$/g,'')));
+      setHeaders(hdrs);
+      setRows(dataRows);
+      const autoMap = {};
+      hdrs.forEach((h,i)=>{
+        const hl = h.toLowerCase();
+        for(const [field, aliases] of Object.entries(FIELD_ALIASES)) {
+          if(aliases.some(a=>hl.includes(a.toLowerCase()))) { autoMap[field]=i; break; }
+        }
+      });
+      setMapping(autoMap);
+      setStep(2);
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+
+  const preview = rows.slice(0,5).map(row=>{
+    const obj={};
+    IMPORT_FIELDS.forEach(f=>{if(mapping[f]!==undefined)obj[f]=row[mapping[f]]||'';});
+    return obj;
+  });
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={{maxWidth:680,width:'90vw'}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-header"><h3>📥 Importar búsquedas desde CSV</h3></div>
+        <div className="modal-body">
+          {step===1&&<div>
+            <p>Seleccioná un archivo CSV. Las columnas serán mapeadas automáticamente.</p>
+            <input type="file" accept=".csv,.txt" className="form-control" onChange={handleFile}/>
+          </div>}
+          {step===2&&<div>
+            <h4 style={{marginBottom:12}}>Mapear columnas ({rows.length} filas encontradas)</h4>
+            <table style={{width:'100%',borderCollapse:'collapse',marginBottom:16,fontSize:13}}>
+              <thead><tr>
+                <th style={{textAlign:'left',padding:'6px 8px',background:'var(--bg-secondary)',borderRadius:'4px 0 0 0'}}>Campo CRM</th>
+                <th style={{textAlign:'left',padding:'6px 8px',background:'var(--bg-secondary)',borderRadius:'0 4px 0 0'}}>Columna del archivo</th>
+              </tr></thead>
+              <tbody>{IMPORT_FIELDS.map(f=>(
+                <tr key={f}><td style={{padding:'4px 8px',fontWeight:500}}>{f}</td>
+                <td style={{padding:'4px 8px'}}>
+                  <select className="form-control" style={{padding:'4px 8px'}} value={mapping[f]!==undefined?mapping[f]:''} onChange={e=>setMapping(m=>({...m,[f]:e.target.value!==''?Number(e.target.value):undefined}))}>
+                    <option value="">-- No mapear --</option>
+                    {headers.map((h,i)=><option key={i} value={i}>{h}</option>)}
+                  </select>
+                </td></tr>
+              ))}</tbody>
+            </table>
+          </div>}
+          {step===3&&<div>
+            <h4 style={{marginBottom:8}}>Vista previa — {rows.length} búsquedas</h4>
+            <div style={{overflowX:'auto',marginBottom:12}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                <thead><tr>{IMPORT_FIELDS.filter(f=>mapping[f]!==undefined).map(k=><th key={k} style={{padding:'4px 8px',background:'var(--bg-secondary)',textAlign:'left'}}>{k}</th>)}</tr></thead>
+                <tbody>{preview.map((row,i)=><tr key={i}>{Object.values(row).map((v,j)=><td key={j} style={{padding:'4px 8px',borderBottom:'1px solid var(--border)'}}>{v}</td>)}</tr>)}</tbody>
+              </table>
+            </div>
+            <p style={{color:'var(--text-secondary)',fontSize:12}}>Primeras 5 de {rows.length} filas.</p>
+          </div>}
+        </div>
+        <div className="modal-footer">
+          {step===2&&<button className="btn btn-primary" onClick={()=>setStep(3)}>Vista previa →</button>}
+          {step===3&&<button className="btn btn-primary" onClick={()=>{
+            const importData = rows.map(row=>{
+              const obj={};
+              IMPORT_FIELDS.forEach(f=>{if(mapping[f]!==undefined)obj[f]=row[mapping[f]]||'';});
+              return obj;
+            });
+            onImport(importData);
+          }}>✅ Importar {rows.length} búsquedas</button>}
+          {step>1&&<button className="btn btn-outline" onClick={()=>setStep(s=>s-1)}>← Volver</button>}
+          <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ══ ADMIN EDIT SEARCH MODAL ═══════════════════════════════════════════
+function AdminEditSearchModal({search, onSave, onClose}) {
+  const [form, setForm] = React.useState({
+    name: search.name||'', position: search.position||'',
+    status: search.status||'Abierta', client: search.client||'',
+    modality: search.modality||'', expectedSalary: search.expectedSalary||'',
+    description: search.description||'', location: search.location||''
+  });
+  const set = k => e => setForm(f=>({...f,[k]:e.target.value}));
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={{maxWidth:560}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-header"><h3>✏️ Editar búsqueda (Admin)</h3></div>
+        <div className="modal-body">
+          <div className="form-group"><label>Nombre de la búsqueda *</label>
+            <input className="form-control" value={form.name} onChange={set('name')} placeholder="Nombre de la búsqueda"/></div>
+          <div className="form-group"><label>Posición / Puesto</label>
+            <input className="form-control" value={form.position} onChange={set('position')} placeholder="Posición"/></div>
+          <div className="form-group"><label>Estado</label>
+            <select className="form-control" value={form.status} onChange={set('status')}>
+              {SEARCH_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
+            </select></div>
+          <div className="form-group"><label>Cliente</label>
+            <input className="form-control" value={form.client} onChange={set('client')} placeholder="Cliente"/></div>
+          <div className="form-group"><label>Modalidad</label>
+            <input className="form-control" value={form.modality} onChange={set('modality')} placeholder="Modalidad"/></div>
+          <div className="form-group"><label>Salario esperado</label>
+            <input className="form-control" value={form.expectedSalary} onChange={set('expectedSalary')} placeholder="Salario esperado"/></div>
+          <div className="form-group"><label>Descripción</label>
+            <textarea className="form-control" value={form.description} onChange={set('description')} rows={3} placeholder="Descripción general"/></div>
+          <div className="form-group"><label>Ubicación</label>
+            <input className="form-control" value={form.location} onChange={set('location')} placeholder="Ubicación"/></div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-primary" onClick={()=>{if(!form.name.trim())return alert('El nombre es requerido');onSave(form);}}>💾 Guardar cambios</button>
+          <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function SearchDetail({ search, users, currentUser, onBack, onUpdateSearch }) {
   const [tab, setTab] = useState('candidatos');
   const [showModal, setShowModal] = useState(false);
   const [editingC, setEditingC] = useState(null);
   const [showReport, setShowReport] = useState(false);
+  const [adminEditOpen, setAdminEditOpen] = React.useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
   const recruiter = users.find(u=>u.id===search.recruiter);
 
@@ -1105,6 +1258,7 @@ function SearchDetail({ search, users, currentUser, onBack, onUpdateSearch }) {
               </select>
             )}
             <button className="btn btn-secondary" style={{background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'white'}} onClick={()=>{setAutoPrint(false);setShowReport(true);}}>👁️ Ver reporte</button>
+            {currentUser.role==='admin'&&<button className="btn btn-outline" onClick={()=>setAdminEditOpen(true)}>✏️ Editar búsqueda</button>}
             <button className="btn btn-secondary" style={{background:'rgba(62,204,122,0.18)',border:'1px solid rgba(62,204,122,0.4)',color:'var(--green)'}} onClick={()=>{setAutoPrint(true);setShowReport(true);}}>⬇️ Descargar PDF</button>
             <button className="btn btn-primary" onClick={()=>{setEditingC(null);setShowModal(true);}}>+ Candidato</button>
           </div>
@@ -1121,6 +1275,7 @@ function SearchDetail({ search, users, currentUser, onBack, onUpdateSearch }) {
       {tab==='candidatos'&&<CandidateTable candidates={search.candidates} onEdit={c=>{setEditingC(c);setShowModal(true);}} onDelete={handleDeleteC} isAdmin={currentUser.role==='admin'}/>}
       {tab==='metricas'&&<MetricsPanel candidates={search.candidates}/>}
 
+      {adminEditOpen&&<AdminEditSearchModal search={search} onSave={(data)=>{onUpdateSearch({...search,...data});setAdminEditOpen(false);}} onClose={()=>setAdminEditOpen(false)}/>}
       {showModal&&<CandidateModal candidate={editingC} onSave={handleSaveC} onClose={()=>{setShowModal(false);setEditingC(null);}}/>}
     </div>
   );
@@ -1452,7 +1607,7 @@ function CandidateDatabase() {
           </select>
           <select className="filter-input form-select" style={{flex:'1 1 140px'}} value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
             <option value="">Todos los estados</option>
-            {STATUSES.map(s=><option key={s}>{s}</option>)}
+            {SEARCH_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div style={{display:'flex',gap:12,alignItems:'center'}}>
@@ -1517,15 +1672,16 @@ function CandidateDatabase() {
 // ═══════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════
-function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearch, onManageTeam }) {
+function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearch, onManageTeam, onImport }) {
   const [tab, setTab] = useState('activas');
   const [filterRec, setFilterRec] = useState('');
   const [filterClient, setFilterClient] = useState('');
   const [showNewSearch, setShowNewSearch] = useState(false);
 
   const mySearches = currentUser.role==='admin' ? searches : searches.filter(s=>s.recruiter===currentUser.id);
-  const activeS = mySearches.filter(s=>s.status==='Activa');
+  const activeS = mySearches.filter(s=>s.status==='Activa'||s.status==='Abierta');
   const closedS = mySearches.filter(s=>s.status==='Cerrada');
+  const pausedS = mySearches.filter(s=>s.status==='Pausada');
   const recruiters = users.filter(u=>u.role==='recruiter');
 
   const applyF = list => list.filter(s => (!filterRec||s.recruiter===filterRec) && (!filterClient||s.client.toLowerCase().includes(filterClient.toLowerCase())));
@@ -1575,6 +1731,7 @@ function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearc
         {currentUser.role==='admin'&&(
           <div style={{display:'flex',gap:10}}>
             <button className="btn btn-secondary" onClick={onManageTeam}>👩‍💻 Gestionar equipo</button>
+                {onImport&&<button className="btn btn-outline" onClick={onImport}>📥 Importar búsquedas</button>}
             <button className="btn btn-primary btn-lg" onClick={()=>setShowNewSearch(true)}>✨ Nueva búsqueda</button>
           </div>
         )}
@@ -1591,8 +1748,9 @@ function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearc
       </div>
 
       <div className="tabs">
-        <div className={`tab ${tab==='activas'?'active':''}`} onClick={()=>setTab('activas')}>🟢 Activas <span className="tab-badge">{applyF(activeS).length}</span></div>
+        <div className={`tab ${tab==='activas'?'active':''}`} onClick={()=>setTab('activas')}>🟢 Abiertas <span className="tab-badge">{applyF(activeS).length}</span></div>
         <div className={`tab ${tab==='cerradas'?'active':''}`} onClick={()=>setTab('cerradas')}>📁 Cerradas <span className="tab-badge">{applyF(closedS).length}</span></div>
+        <div className={`tab ${tab==='pausadas'?'active':''}`} onClick={()=>setTab('pausadas')}>⏸️ Pausadas <span className="tab-badge">{pausedS.length}</span></div>
         {currentUser.role==='admin'&&<div className={`tab ${tab==='metricas'?'active':''}`} onClick={()=>setTab('metricas')}>📈 Métricas globales</div>}
         {currentUser.role==='admin'&&<div className={`tab ${tab==='salarios'?'active':''}`} onClick={()=>setTab('salarios')}>🧠 Intel. salarial</div>}
         {currentUser.role==='admin'&&<div className={`tab ${tab==='base'?'active':''}`} onClick={()=>setTab('base')}>🗂️ Base de candidatos</div>}
@@ -1600,6 +1758,7 @@ function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearc
 
       {tab==='activas'&&renderList(activeS)}
       {tab==='cerradas'&&renderList(closedS)}
+       {tab==='pausadas'&&renderList(pausedS)}
       {tab==='metricas'&&<GlobalMetrics searches={mySearches} users={users}/>}
       {tab==='salarios'&&<SalaryIntelligence searches={mySearches}/>}
       {tab==='base'&&<CandidateDatabase/>}
@@ -1692,6 +1851,7 @@ function Header({ user, onLogout }) {
 function App() {
   const [searches, setSearches] = useState(() => load('ifs_searches', DEMO_SEARCHES));
   const [users, setUsers] = useState(() => load('ifs_users', DEMO_USERS));
+  const [importOpen, setImportOpen] = React.useState(false);
   const [currentUser, setCurrentUser] = useState(() => load('ifs_user', null));
   const [selectedSearch, setSelectedSearch] = useState(null);
   const [showTeam, setShowTeam] = useState(false);
@@ -1824,6 +1984,7 @@ function App() {
             onSelectSearch={setSelectedSearch}
             onCreateSearch={handleCreateSearch}
             onManageTeam={()=>setShowTeam(true)}
+            onImport={()=>setImportOpen(true)}
           />
         )}
       </div>
@@ -1836,6 +1997,18 @@ function App() {
           onClose={()=>setShowTeam(false)}
         />
       )}
+      {importOpen&&<ImportModal onClose={()=>setImportOpen(false)} onImport={async(data)=>{
+        const uid=()=>Math.random().toString(36).slice(2);
+        const newS=data.filter(d=>d.name).map(d=>({
+          id:uid(),name:d.name||'',position:d.position||d.name||'',
+          client:d.client||'',status:SEARCH_STATUSES.includes(d.status)?d.status:'Abierta',
+          description:d.description||'',modality:d.modality||'',location:d.location||'',
+          expectedSalary:d.expectedSalary||'',
+          createdAt:d.createdAt||new Date().toISOString().slice(0,10),candidates:[]
+        }));
+        setSearches(prev=>[...prev,...newS]);
+        setImportOpen(false);
+      }}/>}
     </div>
   );
 }
