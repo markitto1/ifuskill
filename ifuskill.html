@@ -1110,23 +1110,23 @@ function CandidateEntryModal({candidate,onSave,onClose}) {
             {form.cvFileName&&!cvLoading&&<p style={{fontSize:12,color:'var(--green-dark)',marginTop:4}}>✅ {form.cvFileName}</p>}
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}}>
-            <div className="form-group"><label>Nombre *</label><input className="form-control" value={form.name} onChange={set('name')} placeholder="Nombre"/></div>
-            <div className="form-group"><label>Apellido</label><input className="form-control" value={form.lastName} onChange={set('lastName')} placeholder="Apellido"/></div>
-            <div className="form-group"><label>Email</label><input className="form-control" value={form.email} onChange={set('email')} placeholder="email@ejemplo.com"/></div>
-            <div className="form-group"><label>Teléfono</label><input className="form-control" value={form.phone} onChange={set('phone')} placeholder="+54 11 ..."/></div>
-            <div className="form-group"><label>Posición / Puesto</label><input className="form-control" value={form.position} onChange={set('position')} placeholder="Ej: Analista RRHH"/></div>
+            <div className="form-group"><label>Nombre *</label><input className="form-input" value={form.name} onChange={set('name')} placeholder="Nombre"/></div>
+            <div className="form-group"><label>Apellido</label><input className="form-input" value={form.lastName} onChange={set('lastName')} placeholder="Apellido"/></div>
+            <div className="form-group"><label>Email</label><input className="form-input" value={form.email} onChange={set('email')} placeholder="email@ejemplo.com"/></div>
+            <div className="form-group"><label>Teléfono</label><input className="form-input" value={form.phone} onChange={set('phone')} placeholder="+54 11 ..."/></div>
+            <div className="form-group"><label>Posición / Puesto</label><input className="form-input" value={form.position} onChange={set('position')} placeholder="Ej: Analista RRHH"/></div>
             <div className="form-group"><label>Área</label>
-              <select className="form-control" value={form.area} onChange={set('area')}>{CANDIDATE_AREAS.map(a=><option key={a} value={a}>{a}</option>)}</select></div>
-            <div className="form-group"><label>Empresa actual</label><input className="form-control" value={form.currentCompany} onChange={set('currentCompany')} placeholder="Empresa actual"/></div>
-            <div className="form-group"><label>Salario actual</label><input className="form-control" value={form.currentSalary} onChange={set('currentSalary')} placeholder="$800.000"/></div>
-            <div className="form-group"><label>Pretensión salarial</label><input className="form-control" value={form.expectedSalary} onChange={set('expectedSalary')} placeholder="$1.200.000"/></div>
-            <div className="form-group"><label>LinkedIn</label><input className="form-control" value={form.linkedin} onChange={set('linkedin')} placeholder="linkedin.com/in/..."/></div>
+              <select className="form-input" value={form.area} onChange={set('area')}>{CANDIDATE_AREAS.map(a=><option key={a} value={a}>{a}</option>)}</select></div>
+            <div className="form-group"><label>Empresa actual</label><input className="form-input" value={form.currentCompany} onChange={set('currentCompany')} placeholder="Empresa actual"/></div>
+            <div className="form-group"><label>Salario actual</label><input className="form-input" value={form.currentSalary} onChange={set('currentSalary')} placeholder="$800.000"/></div>
+            <div className="form-group"><label>Pretensión salarial</label><input className="form-input" value={form.expectedSalary} onChange={set('expectedSalary')} placeholder="$1.200.000"/></div>
+            <div className="form-group"><label>LinkedIn</label><input className="form-input" value={form.linkedin} onChange={set('linkedin')} placeholder="linkedin.com/in/..."/></div>
           </div>
-          <div className="form-group"><label>Notas</label><textarea className="form-control" value={form.notes} onChange={set('notes')} rows={3} placeholder="Observaciones..."/></div>
+          <div className="form-group"><label>Notas</label><textarea className="form-input" value={form.notes} onChange={set('notes')} rows={3} placeholder="Observaciones..."/></div>
         </div>
         <div className="modal-footer">
           <button className="btn btn-primary" onClick={()=>{if(!form.name.trim())return alert('El nombre es requerido');onSave(form);}}>💾 Guardar</button>
-          <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
         </div>
       </div>
     </div>
@@ -1151,8 +1151,8 @@ function CandidateDB({candidateDB,onAdd,onEdit,onDelete}) {
         <button className="btn btn-primary" onClick={()=>{setEditing(null);setShowModal(true);}}>+ Agregar candidato</button>
       </div>
       <div style={{display:'flex',gap:12,marginBottom:20,flexWrap:'wrap'}}>
-        <input className="form-control" style={{flex:1,minWidth:200}} placeholder="🔍 Nombre, puesto, empresa..." value={search} onChange={e=>setSearch(e.target.value)}/>
-        <select className="form-control" style={{width:180}} value={areaFilter} onChange={e=>setAreaFilter(e.target.value)}>
+        <input className="form-input" style={{flex:1,minWidth:200}} placeholder="🔍 Nombre, puesto, empresa..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        <select className="form-input" style={{width:180}} value={areaFilter} onChange={e=>setAreaFilter(e.target.value)}>
           <option value="">Todas las áreas</option>
           {CANDIDATE_AREAS.map(a=><option key={a} value={a}>{a}</option>)}
         </select>
@@ -1170,8 +1170,8 @@ function CandidateDB({candidateDB,onAdd,onEdit,onDelete}) {
               {c.email&&<div style={{fontSize:12,marginTop:8,color:'var(--text-secondary)'}}>✉️ {c.email}</div>}
               {c.cvFileName&&<div style={{fontSize:12,color:'var(--green-dark)',marginTop:4}}>📎 {c.cvFileName}</div>}
               <div style={{display:'flex',gap:8,marginTop:12}}>
-                <button className="btn btn-outline" style={{fontSize:12,padding:'4px 10px'}} onClick={()=>{setEditing(c);setShowModal(true);}}>✏️ Editar</button>
-                <button className="btn btn-outline" style={{fontSize:12,padding:'4px 10px',color:'var(--red)'}} onClick={()=>{if(confirm('¿Eliminar candidato?'))onDelete(c.id);}}>🗑️</button>
+                <button className="btn btn-secondary" style={{fontSize:12,padding:'4px 10px'}} onClick={()=>{setEditing(c);setShowModal(true);}}>✏️ Editar</button>
+                <button className="btn btn-secondary" style={{fontSize:12,padding:'4px 10px',color:'var(--red)'}} onClick={()=>{if(confirm('¿Eliminar candidato?'))onDelete(c.id);}}>🗑️</button>
               </div>
             </div>
           ))}
@@ -1203,8 +1203,8 @@ function SuggestCandidatesModal({search,candidateDB,onAddCandidate,onClose}) {
           <p style={{fontSize:13,color:'var(--text-secondary)',margin:'4px 0 0'}}>Búsqueda: <strong>{search.position}</strong></p></div>
         <div className="modal-body" style={{flex:1,overflowY:'auto'}}>
           <div style={{display:'flex',gap:10,marginBottom:16}}>
-            <input className="form-control" style={{flex:1}} placeholder="🔍 Nombre, puesto..." value={query} onChange={e=>setQuery(e.target.value)}/>
-            <select className="form-control" style={{width:160}} value={areaFilter} onChange={e=>setAreaFilter(e.target.value)}>
+            <input className="form-input" style={{flex:1}} placeholder="🔍 Nombre, puesto..." value={query} onChange={e=>setQuery(e.target.value)}/>
+            <select className="form-input" style={{width:160}} value={areaFilter} onChange={e=>setAreaFilter(e.target.value)}>
               <option value="">Todas las áreas</option>
               {CANDIDATE_AREAS.map(a=><option key={a} value={a}>{a}</option>)}
             </select>
@@ -1216,11 +1216,11 @@ function SuggestCandidatesModal({search,candidateDB,onAddCandidate,onClose}) {
                 <div style={{fontSize:13,color:'var(--accent)'}}>{c.position||''}{c.currentCompany?' · '+c.currentCompany:''}</div>
                 <div style={{fontSize:12,color:'var(--text-secondary)'}}>{c.area}{c.email?' · '+c.email:''}</div>
               </div>
-              <button className={'btn '+(added[c.id]?'btn-outline':'btn-primary')} style={{fontSize:12,padding:'5px 12px',whiteSpace:'nowrap'}} disabled={added[c.id]} onClick={()=>handleAdd(c)}>{added[c.id]?'✅ Agregado':'+ Agregar'}</button>
+              <button className={'btn '+(added[c.id]?'btn-secondary':'btn-primary')} style={{fontSize:12,padding:'5px 12px',whiteSpace:'nowrap'}} disabled={added[c.id]} onClick={()=>handleAdd(c)}>{added[c.id]?'✅ Agregado':'+ Agregar'}</button>
             </div>
           ))}
         </div>
-        <div className="modal-footer"><button className="btn btn-outline" onClick={onClose}>Cerrar</button></div>
+        <div className="modal-footer"><button className="btn btn-secondary" onClick={onClose}>Cerrar</button></div>
       </div>
     </div>
   );
@@ -1306,7 +1306,7 @@ function ImportModal({onClose, onImport}) {
           if(data.length<2) return alert('El archivo Excel está vacío');
           const hdrs=data[0].map(c=>String(c||'').trim());
           const dataRows=data.slice(1).filter(r=>r.some(c=>c!==''));
-          setRows(dataRows);setMapping(autoMap(hdrs));setStep(2);
+          setHeaders(hdrs);setRows(dataRows);setMapping(autoMap(hdrs));setStep(2);
         }catch(err){alert('Error leyendo Excel: '+err.message);}
       };
       reader.readAsArrayBuffer(file);
@@ -1334,7 +1334,7 @@ function ImportModal({onClose, onImport}) {
         <div className="modal-body" style={{overflowY:'auto',flex:1}}>
           {step===1&&<div>
             <p style={{marginBottom:16}}>Aceptamos <strong>.xlsx</strong>, <strong>.xls</strong> y <strong>.csv</strong>. Columnas mapeadas automáticamente.</p>
-            <input type="file" accept=".xlsx,.xls,.csv,.txt" className="form-control" onChange={handleFile}/>
+            <input type="file" accept=".xlsx,.xls,.csv,.txt" className="form-input" onChange={handleFile}/>
           </div>}
           {step===2&&<div>
             <p style={{marginBottom:12,fontSize:13}}><strong>{fileType.toUpperCase()}</strong> — <strong>{rows.length}</strong> filas. Verificá el mapeo:</p>
@@ -1367,8 +1367,8 @@ function ImportModal({onClose, onImport}) {
             const data=rows.map(row=>{const obj={};allFields.forEach(f=>{if(mapping[f]!==undefined)obj[f]=row[mapping[f]]||'';});return obj;});
             onImport(data);
           }}>✅ Importar {rows.length} filas</button>}
-          {step>1&&<button className="btn btn-outline" onClick={()=>setStep(s=>s-1)}>← Volver</button>}
-          <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
+          {step>1&&<button className="btn btn-secondary" onClick={()=>setStep(s=>s-1)}>← Volver</button>}
+          <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
         </div>
       </div>
     </div>
@@ -1391,23 +1391,23 @@ function AdminEditSearchModal({search, onSave, onClose}) {
         <div className="modal-header"><h3>✏️ Editar búsqueda (Admin)</h3></div>
         <div className="modal-body">
           <div className="form-group"><label>Nombre de la búsqueda *</label>
-            <input className="form-control" value={form.name} onChange={set('name')} placeholder="Nombre de la búsqueda"/></div>
+            <input className="form-input" value={form.name} onChange={set('name')} placeholder="Nombre de la búsqueda"/></div>
           <div className="form-group"><label>Posición / Puesto</label>
-            <input className="form-control" value={form.position} onChange={set('position')} placeholder="Posición"/></div>
+            <input className="form-input" value={form.position} onChange={set('position')} placeholder="Posición"/></div>
           <div className="form-group"><label>Estado</label>
-            <select className="form-control" value={form.status} onChange={set('status')}>
+            <select className="form-input" value={form.status} onChange={set('status')}>
               {SEARCH_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
             </select></div>
           <div className="form-group"><label>Cliente</label>
-            <input className="form-control" value={form.client} onChange={set('client')} placeholder="Cliente"/></div>
+            <input className="form-input" value={form.client} onChange={set('client')} placeholder="Cliente"/></div>
           <div className="form-group"><label>Modalidad</label>
-            <input className="form-control" value={form.modality} onChange={set('modality')} placeholder="Modalidad"/></div>
+            <input className="form-input" value={form.modality} onChange={set('modality')} placeholder="Modalidad"/></div>
           <div className="form-group"><label>Salario esperado</label>
-            <input className="form-control" value={form.expectedSalary} onChange={set('expectedSalary')} placeholder="Salario esperado"/></div>
+            <input className="form-input" value={form.expectedSalary} onChange={set('expectedSalary')} placeholder="Salario esperado"/></div>
           <div className="form-group"><label>Descripción</label>
-            <textarea className="form-control" value={form.description} onChange={set('description')} rows={3} placeholder="Descripción general"/></div>
+            <textarea className="form-input" value={form.description} onChange={set('description')} rows={3} placeholder="Descripción general"/></div>
           <div className="form-group"><label>Ubicación</label>
-            <input className="form-control" value={form.location} onChange={set('location')} placeholder="Ubicación"/></div>
+            <input className="form-input" value={form.location} onChange={set('location')} placeholder="Ubicación"/></div>
         </div>
         <div className="form-group" style={{marginTop:12}}>
           <label>Logo del cliente</label>
@@ -1422,7 +1422,7 @@ function AdminEditSearchModal({search, onSave, onClose}) {
         </div>
         <div className="modal-footer">
           <button className="btn btn-primary" onClick={()=>{if(!form.name.trim())return alert('El nombre es requerido');onSave(form);}}>💾 Guardar cambios</button>
-          <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
         </div>
       </div>
     </div>
@@ -1491,8 +1491,8 @@ function SearchDetail({ search, users, currentUser, onBack, onUpdateSearch, cand
               </select>
             )}
             <button className="btn btn-secondary" style={{background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'white'}} onClick={()=>{setAutoPrint(false);setShowReport(true);}}>👁️ Ver reporte</button>
-            {currentUser.role==='admin'&&<button className="btn btn-outline" onClick={()=>setAdminEditOpen(true)}>✏️ Editar búsqueda</button>}
-            {candidateDB&&candidateDB.length>0&&<button className="btn btn-outline" onClick={()=>setSuggestOpen(true)}>🔍 Sugerir de base</button>}
+            {currentUser.role==='admin'&&<button className="btn btn-secondary" onClick={()=>setAdminEditOpen(true)}>✏️ Editar búsqueda</button>}
+            {candidateDB&&candidateDB.length>0&&<button className="btn btn-secondary" onClick={()=>setSuggestOpen(true)}>🔍 Sugerir de base</button>}
             <button className="btn btn-secondary" style={{background:'rgba(62,204,122,0.18)',border:'1px solid rgba(62,204,122,0.4)',color:'var(--green)'}} onClick={()=>{setAutoPrint(true);setShowReport(true);}}>⬇️ Descargar PDF</button>
             <button className="btn btn-primary" onClick={()=>{setEditingC(null);setShowModal(true);}}>+ Candidato</button>
           </div>
@@ -1794,117 +1794,6 @@ function RecruiterManager({ users, searches, onSaveRecruiter, onClose }) {
 }
 
 // ═══════════════════════════════════════════════════
-// BASE DE CANDIDATOS (Admin only)
-// ═══════════════════════════════════════════════════
-function CandidateDatabase() {
-  const [query, setQuery] = useState('');
-  const [posFilter, setPosFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [cvOnly, setCvOnly] = useState(false);
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [positions, setPositions] = useState([]);
-
-  // Cargar posiciones disponibles
-  React.useEffect(() => {
-    db.from('ifs_candidates').select('position').then(({ data }) => {
-      if (data) setPositions([...new Set(data.map(r=>r.position).filter(Boolean))].sort());
-    });
-  }, []);
-
-  const handleSearch = async () => {
-    setLoading(true); setSearched(true);
-    let q = db.from('ifs_candidates').select('*').order('updated_at', { ascending: false });
-    if (query.trim()) q = q.textSearch('fts', query.trim(), { type: 'websearch', config: 'spanish' });
-    if (posFilter) q = q.eq('position', posFilter);
-    if (statusFilter) q = q.eq('status', statusFilter);
-    if (cvOnly) q = q.not('cv_url', 'is', null);
-    const { data, error } = await q.limit(100);
-    setResults(error ? [] : data);
-    setLoading(false);
-  };
-
-  const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
-
-  const statusColor = s => ({ Contactado:'var(--text-muted)', Entrevista:'#F59E0B', Presentado:'var(--green-dark)', Exámenes:'#3B82F6', Rechazado:'#EF4444' }[s] || 'var(--text-muted)');
-
-  return (
-    <div>
-      {/* Search bar */}
-      <div className="card" style={{marginBottom:20}}>
-        <div style={{fontWeight:800,fontSize:16,color:'var(--dark)',marginBottom:16}}>🔍 Buscar en la base de candidatos</div>
-        <div style={{display:'flex',gap:10,marginBottom:12,flexWrap:'wrap'}}>
-          <input className="filter-input" style={{flex:'2 1 260px'}} placeholder="Buscar por nombre, empresa, posición, notas..." value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={handleKeyDown}/>
-          <select className="filter-input form-select" style={{flex:'1 1 160px'}} value={posFilter} onChange={e=>setPosFilter(e.target.value)}>
-            <option value="">Todas las posiciones</option>
-            {positions.map(p=><option key={p}>{p}</option>)}
-          </select>
-          <select className="filter-input form-select" style={{flex:'1 1 140px'}} value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
-            <option value="">Todos los estados</option>
-            {SEARCH_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <div style={{display:'flex',gap:12,alignItems:'center'}}>
-          <label style={{display:'flex',alignItems:'center',gap:7,fontSize:13,fontWeight:600,cursor:'pointer',color:'var(--text-muted)'}}>
-            <input type="checkbox" checked={cvOnly} onChange={e=>setCvOnly(e.target.checked)} style={{width:15,height:15,accentColor:'var(--green)'}}/>
-            Solo con CV adjunto
-          </label>
-          <button className="btn btn-primary" onClick={handleSearch} style={{marginLeft:'auto'}}>
-            {loading ? '⏳ Buscando...' : '🔍 Buscar'}
-          </button>
-        </div>
-      </div>
-
-      {/* Results */}
-      {!searched && (
-        <div className="empty-state">
-          <div className="empty-icon">🗂️</div>
-          <div className="empty-title">Base de candidatos</div>
-          <div className="empty-desc">Usá los filtros de arriba para encontrar candidatos. Los CVs adjuntos se guardan acá automáticamente cuando se carga un candidato.</div>
-        </div>
-      )}
-      {searched && !loading && results.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-icon">😶</div>
-          <div className="empty-title">Sin resultados</div>
-          <div className="empty-desc">Probá con otros términos o quitá algún filtro.</div>
-        </div>
-      )}
-      {results.length > 0 && (
-        <div>
-          <div style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',marginBottom:12,textTransform:'uppercase',letterSpacing:'0.5px'}}>{results.length} candidato{results.length!==1?'s':''} encontrado{results.length!==1?'s':''}</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:14}}>
-            {results.map(c=>(
-              <div key={c.id} className="card" style={{padding:'18px 20px',display:'flex',flexDirection:'column',gap:10}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
-                  <div>
-                    <div style={{fontWeight:800,fontSize:15,color:'var(--dark)'}}>{c.name}</div>
-                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>{c.current_company||'—'} · {c.position}</div>
-                  </div>
-                  <span style={{fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:20,background:'var(--bg)',color:statusColor(c.status),border:`1px solid ${statusColor(c.status)}22`,whiteSpace:'nowrap'}}>{c.status}</span>
-                </div>
-                <div style={{display:'flex',gap:16,fontSize:12,color:'var(--text-muted)',flexWrap:'wrap'}}>
-                  {c.client&&<span>🏢 {c.client}</span>}
-                  {c.expected_salary&&<span>💰 ${Number(c.expected_salary).toLocaleString()}</span>}
-                  {c.gender&&<span>👤 {c.gender}</span>}
-                </div>
-                {c.notes&&<div style={{fontSize:11,color:'var(--text-light)',fontStyle:'italic',borderTop:'1px solid var(--border)',paddingTop:8}}>{c.notes}</div>}
-                <div style={{display:'flex',gap:8,marginTop:4,flexWrap:'wrap'}}>
-                  {c.cv_url&&<a href={c.cv_url} target="_blank" rel="noopener" className="btn btn-primary btn-sm" style={{fontSize:12}}>📄 Ver CV</a>}
-                  {c.linkedin&&<a href={c.linkedin} target="_blank" rel="noopener" className="btn btn-secondary btn-sm" style={{fontSize:12}}>LinkedIn</a>}
-                  {c.email&&<a href={`mailto:${c.email}`} className="btn btn-secondary btn-sm" style={{fontSize:12}}>✉️</a>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════
 function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearch, onManageTeam, onImport, candidateDB, onCandidateAdd, onCandidateEdit, onCandidateDelete }) {
@@ -1947,7 +1836,7 @@ function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearc
     if (!f.length) return (
       <div className="empty-state">
         <div className="empty-icon">{tab==='activas'?'🔍':'📁'}</div>
-        <div className="empty-title">Sin búsquedas {tab==='activas'?'activas':'cerradas'}</div>
+        <div className="empty-title">Sin búsquedas {tab==='activas'?'activas':tab==='pausadas'?'pausadas':'cerradas'}</div>
         <div className="empty-desc">{currentUser.role==='admin'?'Creá una nueva búsqueda para empezar.':'No tenés búsquedas asignadas aún.'}</div>
         {currentUser.role==='admin'&&tab==='activas'&&<button className="btn btn-primary" onClick={()=>setShowNewSearch(true)}>✨ Nueva búsqueda</button>}
       </div>
@@ -1966,8 +1855,7 @@ function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearc
         {currentUser.role==='admin'&&(
           <div style={{display:'flex',gap:10}}>
             <button className="btn btn-secondary" onClick={onManageTeam}>👩‍💻 Gestionar equipo</button>
-                {onImport&&<button className="btn btn-outline" onClick={onImport}>📥 Importar búsquedas</button>}
-                {onImport&&<button className="btn btn-outline" onClick={onImport}>📥 Importar búsquedas</button>}
+                {onImport&&<button className="btn btn-secondary" onClick={onImport}>📥 Importar búsquedas</button>}
             <button className="btn btn-primary btn-lg" onClick={()=>setShowNewSearch(true)}>✨ Nueva búsqueda</button>
           </div>
         )}
@@ -2107,7 +1995,7 @@ function App() {
           if (sData.length > 0) {
             const loaded = sData.map(r => r.data);
             setSearches(loaded);
-            save('ifs_candidateDB',candidateDB); save('ifs_searches', loaded);
+            save('ifs_searches', loaded);
           } else {
             // Primera vez: subir datos locales a Supabase
             const localS = load('ifs_searches', DEMO_SEARCHES);
@@ -2252,9 +2140,7 @@ function App() {
           alert(allNewS.length+' búsquedas y '+dbC.length+' candidatos importados correctamente');
           return;
         }
-        const uid=()=>Math.random().toString(36).slice(2);
-        const uid2=()=>Math.random().toString(36).slice(2);
-        const newC=data.filter(d=>d.candidateName||d.candidateEmail).map(d=>({id:uid2(),name:d.candidateName||'',lastName:d.candidateLastName||'',email:d.candidateEmail||'',phone:d.candidatePhone||'',position:d.candidatePosition||d.position||'',area:CANDIDATE_AREAS.includes(d.candidateArea)?d.candidateArea:'Otro',currentCompany:d.currentCompany||'',currentSalary:d.currentSalary||'',expectedSalary:d.expectedSalaryCandidate||'',linkedin:d.linkedin||'',notes:d.notes||'',cvFileName:'',createdAt:new Date().toISOString().slice(0,10)}));
+        const newC=data.filter(d=>d.candidateName||d.candidateEmail).map(d=>({id:uid(),name:d.candidateName||'',lastName:d.candidateLastName||'',email:d.candidateEmail||'',phone:d.candidatePhone||'',position:d.candidatePosition||d.position||'',area:CANDIDATE_AREAS.includes(d.candidateArea)?d.candidateArea:'Otro',currentCompany:d.currentCompany||'',currentSalary:d.currentSalary||'',expectedSalary:d.expectedSalaryCandidate||'',linkedin:d.linkedin||'',notes:d.notes||'',cvFileName:'',createdAt:new Date().toISOString().slice(0,10)}));
         if(newC.length>0) setCandidateDB(prev=>[...prev,...newC]);
         const newS=data.filter(d=>d.name).map(d=>({
           id:uid(),name:d.name||'',position:d.position||d.name||'',
