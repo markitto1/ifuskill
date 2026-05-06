@@ -1279,12 +1279,34 @@ function ImportModal({onClose, onImport}) {
       reader.onload=ev=>{
         try{
           const wb=XLSX.read(ev.target.result,{type:'array'});
-          const ws=wb.Sheets[wb.SheetNames[0]];
-          const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+          const SMAP={'nombre':'candidateName','apellido':'candidateLastName','mail':'candidateEmail','celular':'candidatePhone','telefono':'candidatePhone','teléfono':'candidatePhone','expectativa salarial bruta':'expectedSalaryCandidate','expectativa salarial':'expectedSalaryCandidate','comentarios':'notes','linkedin profile':'linkedin','linkedin':'linkedin','status':'candidateStatus','reclutador':'recruiter'};
+          const findHdr=(raw)=>{for(let i=0;i<25&&i<raw.length;i++){if(raw[i].some(c=>typeof c==='string'&&c.toLowerCase().trim()==='nombre'))return i;}return -1;};
+          const firstRaw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+          if(findHdr(firstRaw)>=0){
+            const allS=[],allC=[];
+            wb.SheetNames.forEach(sn=>{
+              const raw=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
+              const hi=findHdr(raw);if(hi===-1)return;
+              const hs=raw[hi].map(h=>(h||'').toString().toLowerCase().trim());
+              const cm={};hs.forEach((h,i)=>{if(SMAP[h])cm[SMAP[h]]=i;});
+              const sc=[];
+              for(let i=hi+1;i<raw.length;i++){
+                const r=raw[i];if(!r||r.every(c=>!c))continue;
+                const g=k=>cm[k]!==undefined?(r[cm[k]]||'').toString().trim():'';
+                const n=g('candidateName'),e=g('candidateEmail'),p=g('candidatePhone');
+                if(!n&&!e&&!p)continue;
+                sc.push({candidateName:n,candidateLastName:g('candidateLastName'),candidateEmail:e,candidatePhone:p,expectedSalaryCandidate:g('expectedSalaryCandidate'),notes:g('notes'),linkedin:g('linkedin'),candidateStatus:g('candidateStatus')||'Contacto',_sheet:sn});
+              }
+              if(sc.length>0){allS.push({_name:sn,_cands:sc});allC.push(...sc);}
+            });
+            if(allS.length===0)return alert('No se encontraron candidatos en el archivo');
+            onImport({isRealFormat:true,searches:allS,candidates:allC});onClose();return;
+          }
+          const ws=wb.Sheets[wb.SheetNames[0]];const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
           if(data.length<2) return alert('El archivo Excel está vacío');
-          const hdrs=data[0].map(c=>String(c).trim());
-          const dataRows=data.slice(1).filter(r=>r.some(c=>String(c).trim()!=='')).map(r=>r.map(c=>String(c).trim()));
-          setHeaders(hdrs);setRows(dataRows);setMapping(autoMap(hdrs));setStep(2);
+          const hdrs=data[0].map(c=>String(c||'').trim());
+          const dataRows=data.slice(1).filter(r=>r.some(c=>c!==''));
+          setRows(dataRows);setMapping(autoMap(hdrs));setStep(2);
         }catch(err){alert('Error leyendo Excel: '+err.message);}
       };
       reader.readAsArrayBuffer(file);
@@ -2221,6 +2243,15 @@ function App() {
         />
       )}
       {importOpen&&<ImportModal onClose={()=>setImportOpen(false)} onImport={async(data)=>{
+        if(data.isRealFormat){
+          const u=()=>Math.random().toString(36).slice(2);
+          const allNewS=data.searches.map(s=>({id:u(),name:s._name,position:s._name,client:'',status:'Abierta',description:'',modality:'',location:'',expectedSalary:'',recruiter:'',createdAt:new Date().toISOString().slice(0,10),candidates:s._cands.map(c=>({id:u(),name:c.candidateName||'',lastName:c.candidateLastName||'',email:c.candidateEmail||'',phone:c.candidatePhone||'',position:s._name,status:c.candidateStatus||'Contacto',expectedSalary:c.expectedSalaryCandidate||'',notes:c.notes||'',linkedin:c.linkedin||'',area:'Otro',currentCompany:'',currentSalary:'',cvFileName:'',createdAt:new Date().toISOString().slice(0,10)}))}));
+          setSearches(prev=>[...prev,...allNewS]);
+          const dbC=data.candidates.map(c=>({id:u(),name:c.candidateName||'',lastName:c.candidateLastName||'',email:c.candidateEmail||'',phone:c.candidatePhone||'',position:c._sheet||'',status:c.candidateStatus||'',expectedSalary:c.expectedSalaryCandidate||'',notes:c.notes||'',linkedin:c.linkedin||'',area:'Otro',currentCompany:'',currentSalary:'',cvFileName:'',createdAt:new Date().toISOString().slice(0,10)}));
+          setCandidateDB(prev=>[...prev,...dbC]);
+          alert(allNewS.length+' búsquedas y '+dbC.length+' candidatos importados correctamente');
+          return;
+        }
         const uid=()=>Math.random().toString(36).slice(2);
         const uid2=()=>Math.random().toString(36).slice(2);
         const newC=data.filter(d=>d.candidateName||d.candidateEmail).map(d=>({id:uid2(),name:d.candidateName||'',lastName:d.candidateLastName||'',email:d.candidateEmail||'',phone:d.candidatePhone||'',position:d.candidatePosition||d.position||'',area:CANDIDATE_AREAS.includes(d.candidateArea)?d.candidateArea:'Otro',currentCompany:d.currentCompany||'',currentSalary:d.currentSalary||'',expectedSalary:d.expectedSalaryCandidate||'',linkedin:d.linkedin||'',notes:d.notes||'',cvFileName:'',createdAt:new Date().toISOString().slice(0,10)}));
