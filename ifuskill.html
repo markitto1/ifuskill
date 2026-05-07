@@ -1987,11 +1987,16 @@ function App() {
     const loadFromCloud = async () => {
       setCloudStatus('syncing');
       try {
-        const [{ data: sData, error: sErr }, { data: uData, error: uErr }] = await Promise.all([
+        const [{ data: sData, error: sErr }, { data: uData, error: uErr }, { data: cData, error: cErr }] = await Promise.all([
           db.from('ifs_searches').select('id, data').order('updated_at', { ascending: false }),
           db.from('ifs_app_users').select('id, data'),
+          db.from('ifs_candidate_db').select('data').eq('id','global'),
         ]);
-        if (!sErr && sData) {
+        // Detectar errores de tablas faltantes
+        if (sErr) { console.error('Supabase ifs_searches error:', sErr.message); setCloudStatus('error'); setTimeout(()=>setCloudStatus('idle'),5000); return; }
+        if (uErr) { console.error('Supabase ifs_app_users error:', uErr.message); setCloudStatus('error'); setTimeout(()=>setCloudStatus('idle'),5000); return; }
+
+        if (sData) {
           if (sData.length > 0) {
             const loaded = sData.map(r => r.data);
             setSearches(loaded);
@@ -2004,7 +2009,7 @@ function App() {
             ));
           }
         }
-        if (!uErr && uData) {
+        if (uData) {
           if (uData.length > 0) {
             const loaded = uData.map(r => r.data);
             setUsers(loaded);
@@ -2015,6 +2020,11 @@ function App() {
               db.from('ifs_app_users').upsert({ id: u.id, data: u }, { onConflict: 'id' })
             ));
           }
+        }
+        if (!cErr && cData && cData.length > 0) {
+          const loaded = cData[0].data || [];
+          setCandidateDB(loaded);
+          save('ifs_candidateDB', loaded);
         }
         setCloudStatus('ok');
       } catch(e) {
@@ -2030,6 +2040,15 @@ function App() {
   useEffect(() => { save('ifs_searches', searches); }, [searches]);
   useEffect(() => { save('ifs_users', users); }, [users]);
   useEffect(() => { save('ifs_user', currentUser); }, [currentUser]);
+  useEffect(() => {
+    save('ifs_candidateDB', candidateDB);
+    // Sync candidateDB to Supabase con debounce
+    const t = setTimeout(() => {
+      db.from('ifs_candidate_db').upsert({ id: 'global', data: candidateDB, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+        .then(({ error }) => { if (error) console.warn('CandidateDB sync error:', error.message); });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [candidateDB]);
 
   // ── Helpers de sync a Supabase ──
   const pushSearch = async (s) => {
@@ -2135,6 +2154,8 @@ function App() {
           const u=()=>Math.random().toString(36).slice(2);
           const allNewS=data.searches.map(s=>({id:u(),name:s._name,position:s._name,client:'',status:'Abierta',description:'',modality:'',location:'',expectedSalary:'',recruiter:'',createdAt:new Date().toISOString().slice(0,10),candidates:s._cands.map(c=>({id:u(),name:c.candidateName||'',lastName:c.candidateLastName||'',email:c.candidateEmail||'',phone:c.candidatePhone||'',position:s._name,status:c.candidateStatus||'Contacto',expectedSalary:c.expectedSalaryCandidate||'',notes:c.notes||'',linkedin:c.linkedin||'',area:'Otro',currentCompany:'',currentSalary:'',cvFileName:'',createdAt:new Date().toISOString().slice(0,10)}))}));
           setSearches(prev=>[...prev,...allNewS]);
+          // Push cada búsqueda importada a Supabase
+          allNewS.forEach(s => pushSearch(s));
           const dbC=data.candidates.map(c=>({id:u(),name:c.candidateName||'',lastName:c.candidateLastName||'',email:c.candidateEmail||'',phone:c.candidatePhone||'',position:c._sheet||'',status:c.candidateStatus||'',expectedSalary:c.expectedSalaryCandidate||'',notes:c.notes||'',linkedin:c.linkedin||'',area:'Otro',currentCompany:'',currentSalary:'',cvFileName:'',createdAt:new Date().toISOString().slice(0,10)}));
           setCandidateDB(prev=>[...prev,...dbC]);
           alert(allNewS.length+' búsquedas y '+dbC.length+' candidatos importados correctamente');
@@ -2150,6 +2171,8 @@ function App() {
           createdAt:d.createdAt||new Date().toISOString().slice(0,10),candidates:[]
         }));
         setSearches(prev=>[...prev,...newS]);
+        // Push búsquedas importadas (formato genérico) a Supabase
+        newS.forEach(s => pushSearch(s));
         setImportOpen(false);
       }}/>}
     </div>
