@@ -1430,7 +1430,7 @@ function AdminEditSearchModal({search, onSave, onClose}) {
 }
 
 
-function SearchDetail({ search, users, currentUser, onBack, onUpdateSearch, candidateDB }) {
+function SearchDetail({ search, users, currentUser, onBack, onUpdateSearch, onDeleteSearch, candidateDB }) {
   const [tab, setTab] = useState('candidatos');
   const [showModal, setShowModal] = useState(false);
   const [editingC, setEditingC] = useState(null);
@@ -1463,7 +1463,15 @@ function SearchDetail({ search, users, currentUser, onBack, onUpdateSearch, cand
   return (
     <div>
       <div className="detail-header">
-        <div className="detail-breadcrumb" onClick={onBack}>← Volver al dashboard</div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div className="detail-breadcrumb" onClick={onBack}>← Volver al dashboard</div>
+          {currentUser.role==='admin' && (
+            <button
+              onClick={()=>{if(confirm(`¿Eliminar "${search.position}" de ${search.client||'sin cliente'}? Esta acción no se puede deshacer.`)){onDeleteSearch(search.id);}}}
+              style={{background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.35)',color:'#FCA5A5',borderRadius:8,padding:'5px 13px',fontSize:12,fontWeight:700,cursor:'pointer'}}
+            >🗑️ Eliminar búsqueda</button>
+          )}
+        </div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:20}}>
           <div style={{flex:1}}>
            {search.logo&&<img src={search.logo} alt="logo" style={{height:44,maxWidth:110,objectFit:'contain',borderRadius:6,background:'rgba(255,255,255,0.08)',padding:'4px 8px',marginBottom:8,display:'block'}}/>}
@@ -1796,7 +1804,7 @@ function RecruiterManager({ users, searches, onSaveRecruiter, onClose }) {
 // ═══════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════
-function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearch, onManageTeam, onImport, candidateDB, onCandidateAdd, onCandidateEdit, onCandidateDelete }) {
+function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearch, onManageTeam, onImport, onDeleteSearch, candidateDB, onCandidateAdd, onCandidateEdit, onCandidateDelete }) {
   const [tab, setTab] = useState('activas');
   const [filterRec, setFilterRec] = useState('');
   const [filterClient, setFilterClient] = useState('');
@@ -1815,7 +1823,20 @@ function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearc
   const SearchCard = ({ search }) => {
     const rec = users.find(u=>u.id===search.recruiter);
     return (
-      <div className="search-card" onClick={()=>onSelectSearch(search)}>
+      <div className="search-card" style={{position:'relative'}} onClick={()=>onSelectSearch(search)}>
+        {currentUser.role==='admin' && (
+          <button
+            title="Eliminar búsqueda"
+            onClick={e=>{
+              e.stopPropagation();
+              if(confirm(`¿Eliminár "${search.position}" de ${search.client||'sin cliente'}? Esta acción no se puede deshacer.`))
+                onDeleteSearch(search.id);
+            }}
+            style={{position:'absolute',top:10,right:10,background:'none',border:'none',cursor:'pointer',fontSize:15,color:'var(--text-muted)',padding:4,borderRadius:6,lineHeight:1,zIndex:2}}
+            onMouseOver={e=>e.currentTarget.style.color='var(--red)'}
+            onMouseOut={e=>e.currentTarget.style.color='var(--text-muted)'}
+          >🗑️</button>
+        )}
         <div className="search-card-client">{search.client}</div>
         <div className="search-card-position">{search.position}</div>
         <div className="search-card-stats">
@@ -2067,6 +2088,11 @@ function App() {
   const handleAddCandidate=c=>setCandidateDB(prev=>[...prev,c]);
   const handleEditCandidate=c=>setCandidateDB(prev=>prev.map(x=>x.id===c.id?c:x));
   const handleDeleteCandidate=id=>setCandidateDB(prev=>prev.filter(x=>x.id!==id));
+  const handleDeleteSearch = (id) => {
+    setSearches(prev => prev.filter(s => s.id !== id));
+    if (selectedSearch?.id === id) setSelectedSearch(null);
+    deleteSearch(id);
+  };
   const handleUpdateSearch = (updated) => {
     setSearches(prev => prev.map(s=>s.id===updated.id?updated:s));
     if (selectedSearch?.id===updated.id) setSelectedSearch(updated);
@@ -2122,6 +2148,7 @@ function App() {
             currentUser={currentUser}
             onBack={()=>setSelectedSearch(null)}
             onUpdateSearch={handleUpdateSearch}
+            onDeleteSearch={handleDeleteSearch}
             candidateDB={candidateDB}
           />
         ) : (
@@ -2133,6 +2160,7 @@ function App() {
             onCreateSearch={handleCreateSearch}
             onManageTeam={()=>setShowTeam(true)}
             onImport={()=>setImportOpen(true)}
+            onDeleteSearch={handleDeleteSearch}
             candidateDB={candidateDB}
             onCandidateAdd={handleAddCandidate}
             onCandidateEdit={handleEditCandidate}
