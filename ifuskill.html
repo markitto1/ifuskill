@@ -1279,8 +1279,28 @@ function ImportModal({onClose, onImport}) {
       reader.onload=ev=>{
         try{
           const wb=XLSX.read(ev.target.result,{type:'array'});
-          const SMAP={'nombre':'candidateName','apellido':'candidateLastName','mail':'candidateEmail','celular':'candidatePhone','telefono':'candidatePhone','teléfono':'candidatePhone','expectativa salarial bruta':'expectedSalaryCandidate','expectativa salarial':'expectedSalaryCandidate','comentarios':'notes','linkedin profile':'linkedin','linkedin':'linkedin','status':'candidateStatus','reclutador':'recruiter'};
-          const findHdr=(raw)=>{for(let i=0;i<25&&i<raw.length;i++){if(raw[i].some(c=>typeof c==='string'&&c.toLowerCase().trim()==='nombre'))return i;}return -1;};
+          const SMAP={
+            // Formato viejo (columnas separadas)
+            'nombre':'candidateName','apellido':'candidateLastName',
+            'mail':'candidateEmail','email':'candidateEmail',
+            'celular':'candidatePhone','telefono':'candidatePhone','teléfono':'candidatePhone',
+            'expectativa salarial bruta':'expectedSalaryCandidate',
+            'expectativa salarial':'expectedSalaryCandidate',
+            'comentarios':'notes','linkedin profile':'linkedin','linkedin':'linkedin',
+            'status':'candidateStatus','reclutador':'recruiter',
+            // Formato nuevo (columnas combinadas)
+            'nombre y apellido':'fullName',
+            'empresa':'currentCompany',
+            'puesto actual':'candidatePosition',
+            'salario actual bruto':'currentSalary',
+            'salario pretendido bruto fijo':'expectedSalaryCandidate',
+            'salario pretendido bruto':'expectedSalaryCandidate',
+            'salario pretendido':'expectedSalaryCandidate',
+            'donde vive':'location','donde viv':'location',
+          };
+          // Detecta la fila de encabezados — acepta 'nombre' o 'nombre y apellido'
+          const HDR_KEYS=['nombre','nombre y apellido'];
+          const findHdr=(raw)=>{for(let i=0;i<25&&i<raw.length;i++){if(raw[i].some(c=>typeof c==='string'&&HDR_KEYS.includes(c.toLowerCase().trim())))return i;}return -1;};
           const firstRaw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
           if(findHdr(firstRaw)>=0){
             const allS=[],allC=[];
@@ -1293,9 +1313,25 @@ function ImportModal({onClose, onImport}) {
               for(let i=hi+1;i<raw.length;i++){
                 const r=raw[i];if(!r||r.every(c=>!c))continue;
                 const g=k=>cm[k]!==undefined?(r[cm[k]]||'').toString().trim():'';
-                const n=g('candidateName'),e=g('candidateEmail'),p=g('candidatePhone');
-                if(!n&&!e&&!p)continue;
-                sc.push({candidateName:n,candidateLastName:g('candidateLastName'),candidateEmail:e,candidatePhone:p,expectedSalaryCandidate:g('expectedSalaryCandidate'),notes:g('notes'),linkedin:g('linkedin'),candidateStatus:g('candidateStatus')||'Contacto',_sheet:sn});
+                // Soporte para nombre completo combinado ("Nombre y Apellido")
+                const fullN=g('fullName');
+                const parts=fullN?fullN.trim().split(/\s+/):[];
+                const cName = g('candidateName') || (parts[0]||'');
+                const cLast = g('candidateLastName') || (parts.length>1?parts.slice(1).join(' '):'');
+                const e=g('candidateEmail'),p=g('candidatePhone');
+                const loc=g('location');
+                const extraNotes=[g('notes'),loc?`📍 ${loc}`:''].filter(Boolean).join(' | ');
+                if(!cName&&!e&&!p)continue;
+                sc.push({
+                  candidateName:cName,candidateLastName:cLast,
+                  candidateEmail:e,candidatePhone:p,
+                  candidatePosition:g('candidatePosition'),
+                  currentCompany:g('currentCompany'),
+                  currentSalary:g('currentSalary'),
+                  expectedSalaryCandidate:g('expectedSalaryCandidate'),
+                  notes:extraNotes,linkedin:g('linkedin'),
+                  candidateStatus:g('candidateStatus')||'Contacto',_sheet:sn
+                });
               }
               if(sc.length>0){allS.push({_name:sn,_cands:sc});allC.push(...sc);}
             });
@@ -2180,11 +2216,12 @@ function App() {
       {importOpen&&<ImportModal onClose={()=>setImportOpen(false)} onImport={async(data)=>{
         if(data.isRealFormat){
           const u=()=>Math.random().toString(36).slice(2);
-          const allNewS=data.searches.map(s=>({id:u(),name:s._name,position:s._name,client:'',status:'Abierta',description:'',modality:'',location:'',expectedSalary:'',recruiter:'',createdAt:new Date().toISOString().slice(0,10),candidates:s._cands.map(c=>({id:u(),name:c.candidateName||'',lastName:c.candidateLastName||'',email:c.candidateEmail||'',phone:c.candidatePhone||'',position:s._name,status:c.candidateStatus||'Contacto',expectedSalary:c.expectedSalaryCandidate||'',notes:c.notes||'',linkedin:c.linkedin||'',area:'Otro',currentCompany:'',currentSalary:'',cvFileName:'',createdAt:new Date().toISOString().slice(0,10)}))}));
+          const makeCand=(c,sheetName)=>({id:u(),name:c.candidateName||'',lastName:c.candidateLastName||'',email:c.candidateEmail||'',phone:c.candidatePhone||'',position:c.candidatePosition||sheetName,status:c.candidateStatus||'Contacto',expectedSalary:c.expectedSalaryCandidate||'',notes:c.notes||'',linkedin:c.linkedin||'',area:'Otro',currentCompany:c.currentCompany||'',currentSalary:c.currentSalary||'',cvFileName:'',createdAt:new Date().toISOString().slice(0,10)});
+          const allNewS=data.searches.map(s=>({id:u(),name:s._name,position:s._name,client:'',status:'Abierta',description:'',modality:'',location:'',expectedSalary:'',recruiter:'',createdAt:new Date().toISOString().slice(0,10),candidates:s._cands.map(c=>makeCand(c,s._name))}));
           setSearches(prev=>[...prev,...allNewS]);
           // Push cada búsqueda importada a Supabase
           allNewS.forEach(s => pushSearch(s));
-          const dbC=data.candidates.map(c=>({id:u(),name:c.candidateName||'',lastName:c.candidateLastName||'',email:c.candidateEmail||'',phone:c.candidatePhone||'',position:c._sheet||'',status:c.candidateStatus||'',expectedSalary:c.expectedSalaryCandidate||'',notes:c.notes||'',linkedin:c.linkedin||'',area:'Otro',currentCompany:'',currentSalary:'',cvFileName:'',createdAt:new Date().toISOString().slice(0,10)}));
+          const dbC=data.candidates.map(c=>makeCand(c,c._sheet||''));
           setCandidateDB(prev=>[...prev,...dbC]);
           alert(allNewS.length+' búsquedas y '+dbC.length+' candidatos importados correctamente');
           return;
