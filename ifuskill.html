@@ -270,6 +270,16 @@ const GENDERS = ['Masculino','Femenino','No binario','Prefiero no decir'];
 const STATUS_COLORS = { Contactado:'#3B82F6', Entrevista:'#F59E0B', Presentado:'#3ECC7A', Exámenes:'#F97316', Rechazado:'#EF4444' };
 const uid = () => Math.random().toString(36).slice(2,9);
 
+// ── CRM Comercial ──
+const RELATIONSHIP_TYPES = ['Cliente activo', 'Ex cliente', 'Prospecto'];
+const SERVICE_INTEREST   = ['Reclutamiento', 'Outplacement', 'Ambos', 'Otro'];
+const OPP_STATUSES       = ['Nuevo', 'En contacto', 'Propuesta enviada', 'Cerrado', 'Sin respuesta'];
+const daysSince = d => d ? Math.floor((Date.now() - new Date(d)) / 86400000) : null;
+const alertLevel = d => d===null?0:d<15?1:d<30?2:d<60?3:4;
+const alertColor = d => ['var(--text-muted)','var(--green-dark)','#F59E0B','#F97316','#EF4444'][alertLevel(d)];
+const alertIcon  = d => ['','','⚠️ ','🔔 ','🚨 '][alertLevel(d)];
+const OPP_COLORS = {'Nuevo':'#6B7280','En contacto':'#3B82F6','Propuesta enviada':'#F59E0B','Cerrado':'var(--green-dark)','Sin respuesta':'#EF4444'};
+
 // ═══════════════════════════════════════════════════
 // DEMO DATA
 // ═══════════════════════════════════════════════════
@@ -1950,6 +1960,246 @@ function Dashboard({ searches, users, currentUser, onSelectSearch, onCreateSearc
 }
 
 // ═══════════════════════════════════════════════════
+// CRM COMERCIAL — CLIENT MODAL
+// ═══════════════════════════════════════════════════
+function ClientModal({ client, onSave, onClose }) {
+  const empty = {companyName:'',contactName:'',email:'',phone:'',relationshipType:'Prospecto',serviceInterest:'Reclutamiento',lastContact:'',nextFollowUp:'',opportunityStatus:'Nuevo',hasActiveSearch:false,postAdmissionFollowUp:false,referralsRequested:false,notes:[],createdAt:new Date().toISOString().slice(0,10)};
+  const [form, setForm] = useState(client ? {...client, notes:client.notes||[]} : empty);
+  const [newNote, setNewNote] = useState('');
+  const set = k => e => setForm(f=>({...f,[k]:e.target.type==='checkbox'?e.target.checked:e.target.value}));
+
+  const addNote = () => {
+    if (!newNote.trim()) return;
+    setForm(f=>({...f, notes:[...f.notes, {id:uid(), text:newNote.trim(), date:new Date().toISOString().slice(0,10)}]}));
+    setNewNote('');
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={{maxWidth:640,width:'94vw',maxHeight:'90vh',display:'flex',flexDirection:'column'}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-header"><h3>{client?'✏️ Editar cliente':'➕ Nuevo cliente'}</h3></div>
+        <div className="modal-body" style={{overflowY:'auto',flex:1}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px 16px'}}>
+            <div className="form-group" style={{gridColumn:'span 2'}}>
+              <label className="form-label required">Empresa</label>
+              <input className="form-input" value={form.companyName} onChange={set('companyName')} placeholder="Nombre de la empresa"/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Contacto</label>
+              <input className="form-input" value={form.contactName} onChange={set('contactName')} placeholder="Nombre y apellido"/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Teléfono</label>
+              <input className="form-input" value={form.phone} onChange={set('phone')} placeholder="+54 11..."/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input className="form-input" type="email" value={form.email} onChange={set('email')} placeholder="email@empresa.com"/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Tipo de relación</label>
+              <select className="form-input form-select" value={form.relationshipType} onChange={set('relationshipType')}>
+                {RELATIONSHIP_TYPES.map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Servicio de interés</label>
+              <select className="form-input form-select" value={form.serviceInterest} onChange={set('serviceInterest')}>
+                {SERVICE_INTEREST.map(s=><option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Estado de la oportunidad</label>
+              <select className="form-input form-select" value={form.opportunityStatus} onChange={set('opportunityStatus')}>
+                {OPP_STATUSES.map(s=><option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Último contacto</label>
+              <input className="form-input" type="date" value={form.lastContact} onChange={set('lastContact')}/>
+            </div>
+            <div className="form-group" style={{gridColumn:'span 2'}}>
+              <label className="form-label">Próximo seguimiento</label>
+              <input className="form-input" type="date" value={form.nextFollowUp} onChange={set('nextFollowUp')}/>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:24,marginTop:8,flexWrap:'wrap'}}>
+            {[['hasActiveSearch','¿Tiene búsqueda activa?'],['postAdmissionFollowUp','¿Seguimiento post ingreso?'],['referralsRequested','¿Se pidieron referidos?']].map(([k,lbl])=>(
+              <label key={k} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,fontWeight:600,cursor:'pointer'}}>
+                <input type="checkbox" checked={!!form[k]} onChange={set(k)} style={{width:15,height:15,accentColor:'var(--green)'}}/>
+                {lbl}
+              </label>
+            ))}
+          </div>
+          <div style={{marginTop:20,borderTop:'1px solid var(--border)',paddingTop:16}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>📝 Historial de conversaciones</div>
+            {form.notes.length>0&&(
+              <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12,maxHeight:200,overflowY:'auto'}}>
+                {[...form.notes].reverse().map(n=>(
+                  <div key={n.id} style={{background:'var(--bg)',borderRadius:8,padding:'8px 12px',fontSize:13,position:'relative',border:'1px solid var(--border)'}}>
+                    <div style={{fontSize:10,color:'var(--text-muted)',fontWeight:700,marginBottom:3}}>📅 {n.date}</div>
+                    <div style={{lineHeight:1.5,paddingRight:20}}>{n.text}</div>
+                    <button onClick={()=>setForm(f=>({...f,notes:f.notes.filter(x=>x.id!==n.id)}))} style={{position:'absolute',top:6,right:8,background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:12}}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{display:'flex',gap:8}}>
+              <textarea className="form-input" rows={2} value={newNote} onChange={e=>setNewNote(e.target.value)} placeholder="Escribí una nota de conversación..." style={{flex:1,resize:'none'}} onKeyDown={e=>{if(e.key==='Enter'&&e.ctrlKey)addNote();}}/>
+              <button className="btn btn-secondary" onClick={addNote} style={{alignSelf:'flex-end',padding:'8px 14px'}}>+ Agregar</button>
+            </div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Ctrl+Enter para agregar rápido</div>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={()=>{if(!form.companyName.trim())return alert('El nombre de la empresa es obligatorio');onSave({...form,id:form.id||uid()});onClose();}}>💾 Guardar cliente</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// CRM COMERCIAL — CLIENTS VIEW
+// ═══════════════════════════════════════════════════
+function ClientsView({ clients, currentUser, onAdd, onEdit, onDelete }) {
+  const [search, setSearch] = useState('');
+  const [relFilter, setRelFilter] = useState('');
+  const [oppFilter, setOppFilter] = useState('');
+  const [alertFilter, setAlertFilter] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const today = new Date().toISOString().slice(0,10);
+
+  const filtered = useMemo(()=>clients.filter(c=>{
+    const q=search.toLowerCase();
+    const mQ=!q||c.companyName.toLowerCase().includes(q)||(c.contactName||'').toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q);
+    const mR=!relFilter||c.relationshipType===relFilter;
+    const mO=!oppFilter||c.opportunityStatus===oppFilter;
+    const d=daysSince(c.lastContact);
+    const mA=!alertFilter||(alertFilter==='hoy'&&c.nextFollowUp===today)||(alertFilter==='15'&&d!==null&&d>=15)||(alertFilter==='30'&&d!==null&&d>=30)||(alertFilter==='60'&&d!==null&&d>=60);
+    return mQ&&mR&&mO&&mA;
+  }),[clients,search,relFilter,oppFilter,alertFilter,today]);
+
+  const overdue15=clients.filter(c=>{const d=daysSince(c.lastContact);return d!==null&&d>=15;}).length;
+  const overdue30=clients.filter(c=>{const d=daysSince(c.lastContact);return d!==null&&d>=30;}).length;
+  const overdue60=clients.filter(c=>{const d=daysSince(c.lastContact);return d!==null&&d>=60;}).length;
+  const followToday=clients.filter(c=>c.nextFollowUp===today).length;
+
+  return (
+    <div style={{maxWidth:1200,margin:'0 auto',padding:'24px 20px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:24,flexWrap:'wrap',gap:12}}>
+        <div>
+          <div className="section-label">CRM Comercial</div>
+          <div className="section-title">Clientes & Oportunidades</div>
+          <div className="section-subtitle">{clients.length} contactos · Seguimiento comercial IfuSkill</div>
+        </div>
+        <button className="btn btn-primary btn-lg" onClick={()=>{setEditing(null);setShowModal(true);}}>➕ Nuevo cliente</button>
+      </div>
+
+      {/* Stats */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
+        {[
+          {l:'Total',v:clients.length,c:'var(--text)',i:'🏢'},
+          {l:'Clientes activos',v:clients.filter(c=>c.relationshipType==='Cliente activo').length,c:'var(--green-dark)',i:'✅'},
+          {l:'Prospectos',v:clients.filter(c=>c.relationshipType==='Prospecto').length,c:'#3B82F6',i:'🎯'},
+          {l:'Seguimiento hoy',v:followToday,c:followToday>0?'#F59E0B':'var(--text-muted)',i:'📅'},
+          {l:'+15d sin contacto',v:overdue15,c:overdue15>0?'#F59E0B':'var(--text-muted)',i:'⚠️'},
+          {l:'+30d sin contacto',v:overdue30,c:overdue30>0?'#F97316':'var(--text-muted)',i:'🔔'},
+          {l:'+60d sin contacto',v:overdue60,c:overdue60>0?'#EF4444':'var(--text-muted)',i:'🚨'},
+        ].map(s=>(
+          <div key={s.l} className="card" style={{padding:'12px 14px',textAlign:'center'}}>
+            <div style={{fontSize:18,marginBottom:2}}>{s.i}</div>
+            <div style={{fontSize:20,fontWeight:800,color:s.c}}>{s.v}</div>
+            <div style={{fontSize:10,color:'var(--text-muted)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.3px'}}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Alert strips */}
+      {overdue60>0&&<div style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:10,padding:'10px 16px',marginBottom:12,fontSize:13,color:'#FCA5A5',fontWeight:600,display:'flex',alignItems:'center',gap:8}}>
+        🚨 <span><strong>{overdue60} cliente{overdue60!==1?'s':''}</strong> sin contacto hace más de 60 días. <button style={{background:'none',border:'none',cursor:'pointer',color:'#FCA5A5',textDecoration:'underline',fontWeight:700,padding:0,fontSize:13}} onClick={()=>setAlertFilter('60')}>Ver ahora →</button></span>
+      </div>}
+      {followToday>0&&<div style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:10,padding:'10px 16px',marginBottom:12,fontSize:13,color:'#FCD34D',fontWeight:600,display:'flex',alignItems:'center',gap:8}}>
+        📅 <span>Tenés <strong>{followToday} seguimiento{followToday!==1?'s':''}</strong> programado{followToday!==1?'s':''} para hoy. <button style={{background:'none',border:'none',cursor:'pointer',color:'#FCD34D',textDecoration:'underline',fontWeight:700,padding:0,fontSize:13}} onClick={()=>setAlertFilter('hoy')}>Ver ahora →</button></span>
+      </div>}
+
+      {/* Filters */}
+      <div className="filters-bar" style={{marginBottom:20,flexWrap:'wrap'}}>
+        <input className="filter-input" style={{flex:'1 1 200px'}} placeholder="🔍 Empresa, contacto, email..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        <select className="filter-input form-select" value={relFilter} onChange={e=>setRelFilter(e.target.value)}>
+          <option value="">Todos los tipos</option>
+          {RELATIONSHIP_TYPES.map(t=><option key={t}>{t}</option>)}
+        </select>
+        <select className="filter-input form-select" value={oppFilter} onChange={e=>setOppFilter(e.target.value)}>
+          <option value="">Todos los estados</option>
+          {OPP_STATUSES.map(s=><option key={s}>{s}</option>)}
+        </select>
+        <select className="filter-input form-select" value={alertFilter} onChange={e=>setAlertFilter(e.target.value)}>
+          <option value="">Todas las alertas</option>
+          <option value="hoy">📅 Seguimiento hoy</option>
+          <option value="15">⚠️ +15d sin contacto</option>
+          <option value="30">🔔 +30d sin contacto</option>
+          <option value="60">🚨 +60d sin contacto</option>
+        </select>
+        {(search||relFilter||oppFilter||alertFilter)&&<button className="btn btn-secondary" onClick={()=>{setSearch('');setRelFilter('');setOppFilter('');setAlertFilter('');}}>✕ Limpiar</button>}
+      </div>
+
+      {/* Cards */}
+      {filtered.length===0?(
+        <div className="empty-state">
+          <div className="empty-icon">🏢</div>
+          <div className="empty-title">{clients.length===0?'Todavía no hay clientes':'Sin resultados'}</div>
+          <div className="empty-desc">{clients.length===0?'Agregá tu primer cliente para empezar el seguimiento comercial.':'Probá con otros filtros.'}</div>
+          {clients.length===0&&<button className="btn btn-primary" onClick={()=>{setEditing(null);setShowModal(true);}}>➕ Nuevo cliente</button>}
+        </div>
+      ):(
+        <div className="searches-grid">
+          {filtered.map(c=>{
+            const d=daysSince(c.lastContact);
+            const col=alertColor(d);
+            const isToday=c.nextFollowUp===today;
+            const isPast=c.nextFollowUp&&c.nextFollowUp<today;
+            return (
+              <div key={c.id} className="card" style={{padding:'18px 20px',display:'flex',flexDirection:'column',gap:10,position:'relative',borderLeft:`3px solid ${col}`}}>
+                {currentUser.role==='admin'&&<button title="Eliminar" onClick={()=>{if(confirm(`¿Eliminar a ${c.companyName}?`))onDelete(c.id);}} style={{position:'absolute',top:10,right:10,background:'none',border:'none',cursor:'pointer',fontSize:14,color:'var(--text-muted)',padding:4,borderRadius:6}} onMouseOver={e=>e.currentTarget.style.color='var(--red)'} onMouseOut={e=>e.currentTarget.style.color='var(--text-muted)'}>🗑️</button>}
+                <div>
+                  <div style={{fontWeight:800,fontSize:15,color:'var(--dark)',paddingRight:24}}>{c.companyName}</div>
+                  {c.contactName&&<div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>👤 {c.contactName}</div>}
+                </div>
+                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                  <span style={{fontSize:11,fontWeight:700,padding:'2px 9px',borderRadius:12,background:'var(--bg)',color:'var(--text-muted)',border:'1px solid var(--border)'}}>{c.relationshipType}</span>
+                  <span style={{fontSize:11,fontWeight:700,padding:'2px 9px',borderRadius:12,background:`${OPP_COLORS[c.opportunityStatus]||'#6B7280'}22`,color:OPP_COLORS[c.opportunityStatus]||'#6B7280',border:`1px solid ${OPP_COLORS[c.opportunityStatus]||'#6B7280'}44`}}>{c.opportunityStatus}</span>
+                  {c.serviceInterest&&<span style={{fontSize:11,fontWeight:600,padding:'2px 9px',borderRadius:12,background:'var(--bg)',color:'var(--text-muted)',border:'1px solid var(--border)'}}>🔧 {c.serviceInterest}</span>}
+                </div>
+                <div style={{display:'flex',gap:14,fontSize:12,color:'var(--text-muted)',flexWrap:'wrap'}}>
+                  {c.email&&<a href={`mailto:${c.email}`} style={{color:'var(--text-muted)',textDecoration:'none'}}>✉️ {c.email}</a>}
+                  {c.phone&&<span>📞 {c.phone}</span>}
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:6}}>
+                  <div style={{fontSize:12,fontWeight:700,color:col}}>{d===null?'Sin fecha de contacto':`${alertIcon(d)}Último contacto: hace ${d} día${d!==1?'s':''}`}</div>
+                  {c.nextFollowUp&&<div style={{fontSize:11,fontWeight:700,color:isToday?'#F59E0B':isPast?'#EF4444':'var(--text-muted)',background:isToday?'rgba(245,158,11,0.1)':isPast?'rgba(239,68,68,0.1)':'var(--bg)',padding:'2px 8px',borderRadius:8,border:`1px solid ${isToday?'rgba(245,158,11,0.3)':isPast?'rgba(239,68,68,0.3)':'var(--border)'}`}}>📅 {isToday?'¡Hoy!':isPast?`Vencido ${c.nextFollowUp}`:c.nextFollowUp}</div>}
+                </div>
+                <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                  {[['hasActiveSearch','Búsqueda activa'],['postAdmissionFollowUp','Post ingreso'],['referralsRequested','Referidos']].map(([k,lbl])=>(
+                    <span key={k} style={{fontSize:11,fontWeight:600,color:c[k]?'var(--green-dark)':'var(--text-muted)',display:'flex',alignItems:'center',gap:3}}>{c[k]?'✅':'⬜'} {lbl}</span>
+                  ))}
+                </div>
+                {c.notes&&c.notes.length>0&&<div style={{fontSize:11,color:'var(--text-muted)',fontStyle:'italic',borderTop:'1px solid var(--border)',paddingTop:8,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>💬 {c.notes[c.notes.length-1].text}</div>}
+                <button className="btn btn-secondary" style={{marginTop:4,fontSize:12,padding:'6px 0'}} onClick={()=>{setEditing(c);setShowModal(true);}}>✏️ Editar / Ver historial</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showModal&&<ClientModal client={editing} onSave={data=>{editing?onEdit(data):onAdd(data);}} onClose={()=>setShowModal(false)}/>}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
 // LOGIN
 // ═══════════════════════════════════════════════════
 function LoginPage({ users, onLogin }) {
@@ -2034,6 +2284,8 @@ function App() {
   const [users, setUsers] = useState(() => load('ifs_users', DEMO_USERS));
   const [importOpen, setImportOpen] = React.useState(false);
   const [candidateDB, setCandidateDB] = useState(()=>load('ifs_candidateDB',[]));
+  const [clients, setClients] = useState(()=>load('ifs_clients',[]));
+  const [appSection, setAppSection] = useState('busquedas'); // 'busquedas' | 'clientes'
   const [currentUser, setCurrentUser] = useState(() => load('ifs_user', null));
   const [selectedSearch, setSelectedSearch] = useState(null);
   const [showTeam, setShowTeam] = useState(false);
@@ -2044,10 +2296,11 @@ function App() {
     const loadFromCloud = async () => {
       setCloudStatus('syncing');
       try {
-        const [{ data: sData, error: sErr }, { data: uData, error: uErr }, { data: cData, error: cErr }] = await Promise.all([
+        const [{ data: sData, error: sErr }, { data: uData, error: uErr }, { data: cData, error: cErr }, { data: clData }] = await Promise.all([
           db.from('ifs_searches').select('id, data').order('updated_at', { ascending: false }),
           db.from('ifs_app_users').select('id, data'),
           db.from('ifs_candidate_db').select('data').eq('id','global'),
+          db.from('ifs_clients').select('id, data').order('updated_at', { ascending: false }),
         ]);
         // Detectar errores de tablas faltantes
         if (sErr) { console.error('Supabase ifs_searches error:', sErr.message); setCloudStatus('error'); setTimeout(()=>setCloudStatus('idle'),5000); return; }
@@ -2083,6 +2336,11 @@ function App() {
           setCandidateDB(loaded);
           save('ifs_candidateDB', loaded);
         }
+        if (clData && clData.length > 0) {
+          const loaded = clData.map(r => r.data);
+          setClients(loaded);
+          save('ifs_clients', loaded);
+        }
         setCloudStatus('ok');
       } catch(e) {
         console.warn('No se pudo conectar a Supabase, usando datos locales:', e);
@@ -2106,6 +2364,17 @@ function App() {
     }, 1500);
     return () => clearTimeout(t);
   }, [candidateDB]);
+
+  useEffect(() => {
+    save('ifs_clients', clients);
+    const t = setTimeout(() => {
+      clients.forEach(c => {
+        db.from('ifs_clients').upsert({ id: c.id, data: c, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+          .then(({ error }) => { if (error) console.warn('Client sync error:', error.message); });
+      });
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [clients]);
 
   // ── Helpers de sync a Supabase ──
   const pushSearch = async (s) => {
@@ -2156,6 +2425,14 @@ function App() {
     pushSearch(d);
   };
 
+  // ── Client CRUD ──
+  const handleAddClient    = c => setClients(prev=>[...prev, c]);
+  const handleEditClient   = c => setClients(prev=>prev.map(x=>x.id===c.id?c:x));
+  const handleDeleteClient = id => {
+    setClients(prev=>prev.filter(x=>x.id!==id));
+    db.from('ifs_clients').delete().eq('id', id).catch(e=>console.warn('Client delete error:',e));
+  };
+
   const handleLogout = () => { setCurrentUser(null); setSelectedSearch(null); save('ifs_user', null); };
 
   if (!currentUser) return <LoginPage users={users} onLogin={setCurrentUser}/>;
@@ -2176,8 +2453,22 @@ function App() {
           {cloudStatus==='syncing' ? 'Sincronizando...' : cloudStatus==='ok' ? 'Datos sincronizados' : 'Sin conexión — datos locales'}
         </div>
       )}
+      {/* Navegación principal */}
+      <div style={{background:'var(--surface)',borderBottom:'1px solid var(--border)',padding:'0 28px',display:'flex',gap:0}}>
+        {[['busquedas','🔍 Búsquedas'],['clientes','🏢 Clientes']].map(([sec,lbl])=>(
+          <button key={sec} onClick={()=>{setAppSection(sec);if(sec==='busquedas'){}}} style={{padding:'12px 20px',background:'none',border:'none',borderBottom:`2px solid ${appSection===sec?'var(--green)':'transparent'}`,color:appSection===sec?'var(--green-dark)':'var(--text-muted)',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:-1,transition:'all 0.2s'}}>{lbl}</button>
+        ))}
+      </div>
       <div className="main-content">
-        {liveSearch ? (
+        {appSection==='clientes' ? (
+          <ClientsView
+            clients={clients}
+            currentUser={currentUser}
+            onAdd={handleAddClient}
+            onEdit={handleEditClient}
+            onDelete={handleDeleteClient}
+          />
+        ) : liveSearch ? (
           <SearchDetail
             search={liveSearch}
             users={users}
